@@ -1,0 +1,85 @@
+{
+  "qi_yin_deficiency": {
+    "primary_syndrome": "气阴两虚证",
+    "secondary_syndromes": [{"name": "气虚证", "confidence": 0.58}],
+    "confidence": 0.91,
+    "evidence": ["口干咽燥、饮水后缓解不明显", "倦怠乏力、活动后气短", "自汗", "舌红少津并见轻度裂纹", "脉细弱"],
+    "pathogenesis": "久病耗气伤阴，气虚则推动无力，阴亏则津液不足，故见乏力、气短与口干少津并存。",
+    "treatment_principle": "益气养阴，生津止渴",
+    "formula": {
+      "name": "生脉散合玉泉丸加减（教学示例）",
+      "items": [
+        {"name": "黄芪", "dose": "15g", "purpose": "益气固表"},
+        {"name": "党参", "dose": "10g", "purpose": "补中益气"},
+        {"name": "麦冬", "dose": "10g", "purpose": "养阴生津"},
+        {"name": "五味子", "dose": "6g", "purpose": "敛阴生津"},
+        {"name": "生地黄", "dose": "15g", "purpose": "养阴清热"},
+        {"name": "葛根", "dose": "10g", "purpose": "生津舒筋"},
+        {"name": "山药", "dose": "15g", "purpose": "补脾益肾"}
+      ],
+      "notes": "仅用于软件功能展示，真实用药必须由执业医师面诊后决定。"
+    },
+    "explanation": "当前信息同时表现出体力不足与津液偏少的特点，中医称为气阴两虚倾向。调护重点是规律作息、适度运动，并在专业人员指导下兼顾益气与养阴。",
+    "lifestyle": [
+      {"title": "饮食", "content": "规律三餐，减少高糖饮料，选择清淡且富含膳食纤维的食物。"},
+      {"title": "运动", "content": "以可耐受的步行或八段锦为主，避免空腹及过度运动。"},
+      {"title": "监测", "content": "继续按原医嘱监测血糖，不因本报告自行调整药物。"}
+    ],
+    "warnings": ["本结果基于模拟病例，仅供教学演示。", "不得依据本结果自行停药、换药或使用中药处方。"]
+  },
+  "yin_deficiency_heat": {
+    "primary_syndrome": "阴虚热盛证",
+    "secondary_syndromes": [{"name": "胃热炽盛证", "confidence": 0.55}],
+    "confidence": 0.89,
+    "evidence": ["口渴明显并偏爱冷饮", "多食易饥", "大便干结", "舌红、苔薄黄、少津", "脉细数"],
+    "pathogenesis": "阴液亏耗，燥热内生，胃热偏盛，津液进一步受灼，故见口渴、多食易饥与便干。",
+    "treatment_principle": "滋阴清热，生津润燥",
+    "formula": {
+      "name": "玉女煎加减（教学示例）",
+      "items": [
+        {"name": "生石膏", "dose": "20g", "purpose": "清胃泄热"},
+        {"name": "知母", "dose": "10g", "purpose": "清热滋阴"},
+        {"name": "生地黄", "dose": "15g", "purpose": "养阴生津"},
+        {"name": "麦冬", "dose": "10g", "purpose": "润燥生津"},
+        {"name": "牛膝", "dose": "10g", "purpose": "引热下行"},
+        {"name": "黄连", "dose": "3g", "purpose": "清热燥湿"}
+      ],
+      "notes": "仅用于软件功能展示，真实用药必须由执业医师面诊后决定。"
+    },
+    "explanation": "当前信息以口渴、多食、便干和舌红少津为主，提示体内津液不足并伴有偏热表现。调护应避免辛辣煎炸和含糖饮料，同时持续规范监测血糖。",
+    "lifestyle": [
+      {"title": "饮食", "content": "减少辛辣、煎炸和高糖食物，保证适量饮水并控制总能量。"},
+      {"title": "作息", "content": "避免熬夜，保持规律睡眠，减少持续高强度工作。"},
+      {"title": "监测", "content": "记录空腹及餐后血糖，如持续升高应及时线下复诊。"}
+    ],
+    "warnings": ["本结果基于模拟病例，仅供教学演示。", "报告不能替代糖尿病规范治疗和专业医师判断。"]
+  },
+  "yin_yang_deficiency": {
+    "primary_syndrome": "阴阳两虚证",
+    "secondary_syndromes": [{"name": "肾阳虚证", "confidence": 0.61}],
+    "confidence": 0.9,
+    "evidence": ["畏寒肢冷", "夜尿频多", "腰膝酸软", "下肢轻度浮肿", "舌淡胖、有齿痕", "脉沉细弱"],
+    "pathogenesis": "病程日久，阴损及阳，肾气亏虚，温煦和固摄功能不足，故见畏寒、夜尿、腰膝酸软及浮肿。",
+    "treatment_principle": "滋阴温阳，补肾固摄",
+    "formula": {
+      "name": "金匮肾气丸加减（教学示例）",
+      "items": [
+        {"name": "熟地黄", "dose": "15g", "purpose": "滋阴补肾"},
+        {"name": "山药", "dose": "12g", "purpose": "补脾固摄"},
+        {"name": "山茱萸", "dose": "10g", "purpose": "补益肝肾"},
+        {"name": "茯苓", "dose": "12g", "purpose": "健脾利水"},
+        {"name": "泽泻", "dose": "10g", "purpose": "利水泄浊"},
+        {"name": "牡丹皮", "dose": "10g", "purpose": "清泄虚热"},
+        {"name": "桂枝", "dose": "6g", "purpose": "温通阳气"}
+      ],
+      "notes": "仅用于软件功能展示，老年人及合并多病者更需由执业医师综合评估。"
+    },
+    "explanation": "当前模拟信息反映出病程较久、怕冷、夜尿及腰膝不适等特点，中医上偏向阴阳两虚。调护宜循序渐进，注意保暖并避免自行使用温补药物。",
+    "lifestyle": [
+      {"title": "起居", "content": "注意腰腹和足部保暖，规律作息，避免久坐和过度劳累。"},
+      {"title": "运动", "content": "选择低强度、可持续活动，并关注运动前后血糖及足部状态。"},
+      {"title": "复诊", "content": "病程较长且合并高血压，应按原医嘱规律复诊和用药。"}
+    ],
+    "warnings": ["本结果基于模拟病例，仅供教学演示。", "涉及慢病合并用药，任何调整均需由专业医师完成。"]
+  }
+}

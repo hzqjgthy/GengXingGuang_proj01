@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="糖尿病中医智能辅助诊疗教学演示系统">
+    <title>糖医智辨 · 教学演示</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <script defer src="{{ url_for('static', filename='vendor/lucide.min.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="病例与流程导航">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true"><i data-lucide="activity"></i></div>
+          <div>
+            <strong>糖医智辨</strong>
+            <span>中医辅助诊疗 Demo</span>
+          </div>
+        </div>
+
+        <div class="demo-tag"><span></span> 教学演示环境</div>
+
+        <section class="side-section">
+          <div class="side-heading">
+            <span>模拟病例</span>
+            <span id="case-count" class="side-count">0</span>
+          </div>
+          <div id="case-list" class="case-list" aria-live="polite"></div>
+        </section>
+
+        <section class="side-section workflow-section">
+          <div class="side-heading"><span>演示流程</span></div>
+          <nav id="workflow-nav" class="workflow-nav"></nav>
+        </section>
+
+        <div class="sidebar-footer">
+          <div class="model-status-row">
+            <span id="model-dot" class="model-dot"></span>
+            <div>
+              <span class="footer-label">分析引擎</span>
+              <strong id="model-label">正在检查</strong>
+            </div>
+          </div>
+          <button id="sidebar-reset" class="button button-ghost button-full" type="button">
+            <i data-lucide="rotate-ccw"></i><span>重置当前病例</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <div class="page-context">
+            <span id="step-eyebrow" class="eyebrow">STEP 01</span>
+            <h1 id="page-title">信息采集</h1>
+          </div>
+          <div class="topbar-actions">
+            <div class="mode-control" aria-label="分析模式">
+              <button type="button" data-mode="online" class="mode-button is-active">在线模型</button>
+              <button type="button" data-mode="demo" class="mode-button">演示数据</button>
+            </div>
+            <button id="top-reset" class="icon-button" type="button" title="重置当前病例" aria-label="重置当前病例">
+              <i data-lucide="rotate-ccw"></i>
+            </button>
+          </div>
+        </header>
+
+        <div class="notice-band" role="note">
+          <i data-lucide="flask-conical"></i>
+          <span><strong>模拟数据：</strong>本系统仅用于教材实践和项目展示，不构成真实诊断、处方或用药建议。</span>
+        </div>
+
+        <div id="app-view" class="app-view" aria-live="polite"></div>
+      </main>
+    </div>
+
+    <div id="toast-region" class="toast-region" aria-live="assertive"></div>
+    <noscript>本演示需要启用 JavaScript。</noscript>
+  </body>
+</html>

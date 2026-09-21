@@ -1,0 +1,101 @@
+{
+  "cases": [
+    {
+      "id": "case-a",
+      "code": "A",
+      "display_name": "演示患者 A",
+      "sex": "女",
+      "age": 52,
+      "height_cm": 162,
+      "weight_kg": 61,
+      "course_years": 6,
+      "headline": "口干多饮 · 倦怠乏力 · 自汗",
+      "expected_syndrome": "气阴两虚证",
+      "result_key": "qi_yin_deficiency",
+      "accent": "green",
+      "image_url": "/static/images/tongue-case-a.jpg",
+      "chief_complaint": "口干多饮伴乏力反复半年。",
+      "present_illness": "近半年口干咽燥，饮水后缓解不明显，午后倦怠，活动后气短，偶有自汗。空腹血糖控制欠佳。",
+      "medical_history": "2型糖尿病6年，无明确药物过敏史。",
+      "current_medications": "二甲双胍，按原医嘱服用。",
+      "symptoms": ["thirst", "fatigue", "short_breath", "spontaneous_sweating", "dry_mouth", "blurred_vision"],
+      "four_diagnosis": {
+        "observation": "神疲，面色少华",
+        "listening_smelling": "语声偏低，无异常气味",
+        "tongue": {"color": "红", "body": "偏瘦", "coating": "薄白", "feature": "少津、轻度裂纹"},
+        "pulse": {"depth": "沉", "rate": "平", "strength": "弱", "quality": "细弱"}
+      },
+      "labs": {"fasting_glucose": 8.1, "postprandial_glucose": 11.6, "hba1c": 7.8},
+      "history": [
+        {"date": "2026-05-10", "fasting_glucose": 9.0, "hba1c": 8.4, "syndrome": "气阴两虚证"},
+        {"date": "2026-06-18", "fasting_glucose": 8.6, "hba1c": 8.1, "syndrome": "气阴两虚证"},
+        {"date": "2026-08-02", "fasting_glucose": 8.1, "hba1c": 7.8, "syndrome": "气阴两虚证"}
+      ]
+    },
+    {
+      "id": "case-b",
+      "code": "B",
+      "display_name": "演示患者 B",
+      "sex": "男",
+      "age": 45,
+      "height_cm": 174,
+      "weight_kg": 76,
+      "course_years": 3,
+      "headline": "口渴喜冷 · 多食易饥 · 大便干结",
+      "expected_syndrome": "阴虚热盛证",
+      "result_key": "yin_deficiency_heat",
+      "accent": "red",
+      "image_url": "/static/images/tongue-case-b.jpg",
+      "chief_complaint": "口渴、多食易饥伴大便干结3个月。",
+      "present_illness": "口渴明显，偏爱冷饮，进食量增多仍易饥，偶有心烦，夜间轻度盗汗，大便两日一行、质干。",
+      "medical_history": "2型糖尿病3年，既往血脂偏高。",
+      "current_medications": "二甲双胍，按原医嘱服用。",
+      "symptoms": ["strong_thirst", "cold_drinks", "excessive_hunger", "constipation", "night_sweat", "poor_sleep"],
+      "four_diagnosis": {
+        "observation": "面色偏红，精神尚可",
+        "listening_smelling": "语声有力，口气稍重",
+        "tongue": {"color": "红", "body": "偏瘦", "coating": "薄黄", "feature": "少津"},
+        "pulse": {"depth": "浮", "rate": "数", "strength": "有力", "quality": "细数"}
+      },
+      "labs": {"fasting_glucose": 9.4, "postprandial_glucose": 13.2, "hba1c": 8.6},
+      "history": [
+        {"date": "2026-04-12", "fasting_glucose": 10.2, "hba1c": 9.0, "syndrome": "阴虚热盛证"},
+        {"date": "2026-06-03", "fasting_glucose": 9.8, "hba1c": 8.8, "syndrome": "阴虚热盛证"},
+        {"date": "2026-08-19", "fasting_glucose": 9.4, "hba1c": 8.6, "syndrome": "阴虚热盛证"}
+      ]
+    },
+    {
+      "id": "case-c",
+      "code": "C",
+      "display_name": "演示患者 C",
+      "sex": "女",
+      "age": 64,
+      "height_cm": 158,
+      "weight_kg": 67,
+      "course_years": 12,
+      "headline": "畏寒肢冷 · 夜尿频多 · 腰膝酸软",
+      "expected_syndrome": "阴阳两虚证",
+      "result_key": "yin_yang_deficiency",
+      "accent": "gold",
+      "image_url": "/static/images/tongue-case-c.jpg",
+      "chief_complaint": "乏力、畏寒伴夜尿频多1年，加重2个月。",
+      "present_illness": "长期倦怠乏力，近两月畏寒肢冷明显，夜尿每晚3至4次，腰膝酸软，偶见下肢轻度浮肿。",
+      "medical_history": "2型糖尿病12年，高血压病史8年。",
+      "current_medications": "二甲双胍及降压药，均按原医嘱服用。",
+      "symptoms": ["cold_limbs", "nocturia", "sore_waist", "fatigue", "edema", "numbness"],
+      "four_diagnosis": {
+        "observation": "面色晄白，精神疲惫",
+        "listening_smelling": "语声低微，无异常气味",
+        "tongue": {"color": "淡", "body": "胖大", "coating": "白润", "feature": "边有齿痕"},
+        "pulse": {"depth": "沉", "rate": "迟", "strength": "弱", "quality": "沉细弱"}
+      },
+      "labs": {"fasting_glucose": 8.7, "postprandial_glucose": 12.1, "hba1c": 8.2},
+      "history": [
+        {"date": "2026-03-22", "fasting_glucose": 9.5, "hba1c": 8.9, "syndrome": "阴阳两虚证"},
+        {"date": "2026-06-14", "fasting_glucose": 9.1, "hba1c": 8.5, "syndrome": "阴阳两虚证"},
+        {"date": "2026-08-28", "fasting_glucose": 8.7, "hba1c": 8.2, "syndrome": "阴阳两虚证"}
+      ]
+    }
+  ]
+}
+
