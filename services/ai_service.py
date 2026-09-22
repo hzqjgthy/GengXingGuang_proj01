@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Tuple
 import requests
 
 from .case_store import CaseStore
+from .safety_rules import check_formula
 
 
 PROVIDER_DEFAULTS = {
@@ -150,6 +151,18 @@ class DemoAnalysisEngine:
 
 
 class AIService:
+    CONSTITUTION_QUESTIONS = [
+        {"id": "q1", "text": "您容易疲劳、气短或说话声音低弱吗？", "dimension": "气虚质"},
+        {"id": "q2", "text": "您容易怕冷，手脚发凉吗？", "dimension": "阳虚质"},
+        {"id": "q3", "text": "您常感到口干咽燥、手足心热吗？", "dimension": "阴虚质"},
+        {"id": "q4", "text": "您容易长痘、口苦或面部油脂较多吗？", "dimension": "湿热质"},
+        {"id": "q5", "text": "您身体容易沉重、腹部肥满或痰多吗？", "dimension": "痰湿质"},
+        {"id": "q6", "text": "您容易情绪低落、闷闷不乐吗？", "dimension": "气郁质"},
+        {"id": "q7", "text": "您皮肤容易出现瘀斑或疼痛固定吗？", "dimension": "血瘀质"},
+        {"id": "q8", "text": "您容易过敏、鼻塞或打喷嚏吗？", "dimension": "特禀质"},
+        {"id": "q9", "text": "您精力充沛、睡眠和食欲总体良好吗？", "dimension": "平和质"},
+    ]
+
     def __init__(self, store: CaseStore):
         self.store = store
         self.demo_engine = DemoAnalysisEngine(store)
@@ -181,12 +194,53 @@ class AIService:
             "available_modes": ["online", "demo"],
         }
 
+    def constitution_questions(self) -> List[Dict[str, Any]]:
+        return self.CONSTITUTION_QUESTIONS
+
+    def analyze_constitution(self, answers: Dict[str, Any]) -> Dict[str, Any]:
+        scores: Dict[str, int] = {}
+        for question in self.CONSTITUTION_QUESTIONS:
+            try:
+                score = max(1, min(5, int(answers.get(question["id"], 1))))
+            except (TypeError, ValueError):
+                score = 1
+            scores[question["dimension"]] = score
+        ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        primary = ordered[0][0]
+        explanation = {
+            "primary": primary,
+            "summary": "根据量表评分，当前演示结果偏向%s。" % primary,
+            "advice": ["保持规律作息", "结合个人情况进行适度运动", "结果仅用于健康管理参考"],
+            "warnings": ["体质辨识不等同于疾病诊断，复杂情况请咨询专业医师"],
+        }
+        if self.online_configured:
+            try:
+                explanation = self._online_constitution_explanation(scores, primary)
+            except Exception as exc:
+                raise AIServiceError("ONLINE_MODEL_FAILED", self._friendly_error(exc), 502) from exc
+        return {"scores": scores, "primary": primary, "explanation": explanation}
+
+    def generate_knowledge_graph(self, input_text: str) -> Dict[str, Any]:
+        if not self.online_configured:
+            raise AIServiceError("ONLINE_MODEL_NOT_CONFIGURED", "在线模型未配置，无法生成知识框图。", 503)
+        try:
+            result = self._chat_json(
+                "你是中医知识结构化助手。请把用户输入转换为知识关系框图，只输出JSON，不要输出解释。JSON必须包含title字符串、nodes数组和edges数组；nodes每项包含id、label、category；edges每项包含source、target、relation。只根据输入组织关系，不补写无法确认的临床事实。",
+                "请生成知识框图：%s" % input_text,
+            )
+        except Exception as exc:
+            raise AIServiceError("ONLINE_MODEL_FAILED", self._friendly_error(exc), 502) from exc
+        if not isinstance(result.get("nodes"), list) or not isinstance(result.get("edges"), list):
+            raise AIServiceError("ONLINE_MODEL_INVALID", "在线模型返回的知识框图结构无效。", 502)
+        return result
+
     def analyze(self, case_data: Dict[str, Any], mode: str = "online") -> Tuple[Dict[str, Any], Dict[str, Any]]:
         started = time.monotonic()
         selected_mode = mode if mode in {"online", "demo"} else "online"
 
         if selected_mode == "demo":
             result = self.demo_engine.analyze(case_data)
+            result["safety_checks"] = check_formula(result.get("formula", {}))
             return result, self._meta("demo", started)
 
         if not self.online_configured:
@@ -200,6 +254,7 @@ class AIService:
             result = self._analyze_online(case_data)
         except Exception as exc:
             raise AIServiceError("ONLINE_MODEL_FAILED", self._friendly_error(exc), 502) from exc
+        result["safety_checks"] = check_formula(result.get("formula", {}))
         return result, self._meta("online", started)
 
     def _meta(self, mode: str, started: float) -> Dict[str, Any]:
@@ -248,6 +303,24 @@ class AIService:
         result = self._parse_json(content)
         self._validate_result(result)
         return result
+
+    def _online_constitution_explanation(self, scores: Dict[str, int], primary: str) -> Dict[str, Any]:
+        return self._chat_json(
+            "你是中医体质健康管理解释模块。根据量表分数解释体质倾向，只返回JSON，字段为primary、summary、advice数组和warnings数组。不得诊断疾病、开具处方或建议停药。",
+            "量表分数：%s；主要倾向：%s" % (json.dumps(scores, ensure_ascii=False), primary),
+        )
+
+    def _chat_json(self, system_prompt: str, user_text: str) -> Dict[str, Any]:
+        endpoint = self.base_url if self.base_url.endswith("/chat/completions") else self.base_url + "/chat/completions"
+        response = requests.post(
+            endpoint,
+            headers={"Authorization": "Bearer %s" % self.api_key, "Content-Type": "application/json"},
+            json={"model": self.model, "temperature": 0.2, "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_text}]},
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return self._parse_json(payload["choices"][0]["message"]["content"])
 
     @staticmethod
     def _system_prompt() -> str:

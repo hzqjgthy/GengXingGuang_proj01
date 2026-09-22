@@ -34,9 +34,15 @@
         <section class="side-section workflow-section">
           <div class="side-heading"><span>演示流程</span></div>
           <nav id="workflow-nav" class="workflow-nav"></nav>
+          <button id="history-button" class="sidebar-link" type="button"><i data-lucide="history"></i><span>历史健康分析</span></button>
+          <button id="tools-button" class="sidebar-link" type="button"><i data-lucide="layers-3"></i><span>体质与知识工具</span></button>
         </section>
 
         <div class="sidebar-footer">
+          <div id="auth-user" class="model-status-row" hidden>
+            <div class="user-avatar" aria-hidden="true"><i data-lucide="user-round"></i></div>
+            <div><span class="footer-label">当前用户</span><strong id="auth-username">未登录</strong></div>
+          </div>
           <div class="model-status-row">
             <span id="model-dot" class="model-dot"></span>
             <div>
@@ -46,6 +52,9 @@
           </div>
           <button id="sidebar-reset" class="button button-ghost button-full" type="button">
             <i data-lucide="rotate-ccw"></i><span>重置当前病例</span>
+          </button>
+          <button id="logout-button" class="button button-ghost button-full" type="button" hidden>
+            <i data-lucide="log-out"></i><span>退出登录</span>
           </button>
         </div>
       </aside>

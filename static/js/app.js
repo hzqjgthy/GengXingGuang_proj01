@@ -36,10 +36,13 @@ const state = {
   analysisMeta: null,
   review: null,
   report: null,
+  analysisSaved: null,
   reportTab: "medical",
   busy: false,
   error: null,
   uploadedImage: null,
+  user: null,
+  authMode: "login",
 };
 
 document.addEventListener("DOMContentLoaded", init);
@@ -47,6 +50,9 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   bindGlobalEvents();
   try {
+    const auth = await api("/api/auth/me");
+    state.user = auth.user;
+    updateAuthUser();
     const [config, casePayload] = await Promise.all([
       api("/api/config"),
       api("/api/cases"),
@@ -59,7 +65,11 @@ async function init() {
     }
     await selectCase(state.cases[0].id);
   } catch (error) {
-    renderFatal(error.message);
+    if (String(error.message).includes("请先登录")) {
+      renderAuth();
+    } else {
+      renderFatal(error.message);
+    }
   }
 }
 
@@ -80,6 +90,86 @@ function bindGlobalEvents() {
 
   document.getElementById("sidebar-reset").addEventListener("click", resetCase);
   document.getElementById("top-reset").addEventListener("click", resetCase);
+  document.getElementById("logout-button").addEventListener("click", logout);
+  document.getElementById("history-button").addEventListener("click", renderHistory);
+  document.getElementById("tools-button").addEventListener("click", renderTools);
+}
+
+function renderAuth() {
+  document.getElementById("app-view").innerHTML = `
+    <div class="auth-page">
+      <div class="auth-card">
+        <div class="auth-icon"><i data-lucide="shield-check"></i></div>
+        <span class="eyebrow">LOCAL USER SPACE</span>
+        <h2>${state.authMode === "login" ? "登录糖医智辨" : "创建本地账号"}</h2>
+        <p>${state.authMode === "login" ? "登录后保存病例、分析结果和历史健康记录。" : "账号仅保存在当前项目数据库中。"}</p>
+        <form id="auth-form" class="auth-form">
+          <label>用户名<input id="auth-username-input" class="input" minlength="3" maxlength="64" required autocomplete="username"></label>
+          <label>密码<input id="auth-password-input" class="input" type="password" minlength="6" required autocomplete="${state.authMode === "login" ? "current-password" : "new-password"}"></label>
+          ${state.authMode === "register" ? '<label>确认密码<input id="auth-confirm-input" class="input" type="password" minlength="6" required autocomplete="new-password"></label>' : ""}
+          <div id="auth-error" class="form-error"><i data-lucide="circle-alert"></i><span></span></div>
+          <button class="button button-primary button-full" type="submit"><i data-lucide="${state.authMode === "login" ? "log-in" : "user-plus"}"></i>${state.authMode === "login" ? "登录" : "注册并登录"}</button>
+        </form>
+        <button id="auth-switch" class="auth-switch" type="button">${state.authMode === "login" ? "没有账号？注册一个" : "已有账号？返回登录"}</button>
+        <div class="auth-note"><i data-lucide="database"></i><span>当前数据存储在项目配置的本机数据库中。</span></div>
+      </div>
+    </div>`;
+  document.getElementById("auth-form").addEventListener("submit", handleAuthSubmit);
+  document.getElementById("auth-switch").addEventListener("click", () => {
+    state.authMode = state.authMode === "login" ? "register" : "login";
+    renderAuth();
+  });
+  refreshIcons();
+}
+
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+  const username = value("auth-username-input");
+  const password = value("auth-password-input");
+  if (state.authMode === "register" && password !== value("auth-confirm-input")) {
+    showAuthError("两次输入的密码不一致");
+    return;
+  }
+  try {
+    const payload = await api(`/api/auth/${state.authMode === "login" ? "login" : "register"}`, {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    state.user = payload.user;
+    updateAuthUser();
+    const [config, casePayload] = await Promise.all([api("/api/config"), api("/api/cases")]);
+    state.config = config;
+    state.cases = casePayload.cases || [];
+    updateModelStatus();
+    await selectCase(state.cases[0].id);
+    showToast("登录成功，已开启用户数据记录");
+  } catch (error) {
+    showAuthError(error.message);
+  }
+}
+
+function showAuthError(message) {
+  const box = document.getElementById("auth-error");
+  box.querySelector("span").textContent = message;
+  box.classList.add("is-visible");
+}
+
+function updateAuthUser() {
+  const user = document.getElementById("auth-user");
+  const logoutButton = document.getElementById("logout-button");
+  if (!user || !logoutButton) return;
+  user.hidden = !state.user;
+  logoutButton.hidden = !state.user;
+  if (state.user) document.getElementById("auth-username").textContent = state.user.username;
+}
+
+async function logout() {
+  await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+  state.user = null;
+  state.cases = [];
+  state.caseData = null;
+  updateAuthUser();
+  renderAuth();
 }
 
 async function api(url, options = {}) {
@@ -109,6 +199,7 @@ async function selectCase(caseId) {
   state.analysisMeta = null;
   state.review = null;
   state.report = null;
+  state.analysisSaved = null;
   state.reportTab = "medical";
   state.currentStep = 0;
   state.maxStep = 0;
@@ -138,6 +229,94 @@ function render() {
   if (state.currentStep === 1) renderAnalysis();
   if (state.currentStep === 2) renderReview();
   if (state.currentStep === 3) renderReport();
+  refreshIcons();
+}
+
+async function renderHistory() {
+  try {
+    const payload = await api("/api/history");
+    document.getElementById("app-view").innerHTML = `
+      <div class="page-heading"><div><h2>历史健康分析</h2><p>当前用户保存的病例分析记录。原始记录不会被新分析覆盖。</p></div><button id="history-refresh" class="button button-secondary" type="button"><i data-lucide="refresh-cw"></i>刷新</button></div>
+      <div class="history-grid">
+        ${(payload.history || []).length ? payload.history.map(historyCard).join("") : '<div class="empty-state"><i data-lucide="history"></i><h2>还没有历史记录</h2><p>完成一次在线或演示数据分析后，记录会自动出现在这里。</p></div>'}
+      </div>`;
+    document.getElementById("history-refresh")?.addEventListener("click", renderHistory);
+    refreshIcons();
+  } catch (error) {
+    showToast(error.message, true);
+  }
+}
+
+function historyCard(item) {
+  const tongue = item.tongue_analysis || {};
+  const confidence = item.confidence == null ? "--" : `${Math.round(Number(item.confidence) * 100)}%`;
+  return `<article class="history-card"><div class="history-card-head"><div><span class="eyebrow">${escapeHtml(item.created_at)}</span><h3>${escapeHtml(item.display_name)}</h3></div><span class="status-badge">${escapeHtml(item.provider)} · ${escapeHtml(item.model)}</span></div><div class="history-result"><strong>${escapeHtml(item.primary_syndrome)}</strong><span>置信度 ${escapeHtml(confidence)}</span></div><div class="history-meta"><span>空腹血糖 ${escapeHtml(item.fasting_glucose ?? "--")} mmol/L</span><span>舌色 ${escapeHtml(tongue.tongue_color || "未记录")}</span><span>舌形 ${escapeHtml(tongue.tongue_shape || "未记录")}</span></div></article>`;
+}
+
+function renderTools() {
+  document.getElementById("app-view").innerHTML = `
+    <div class="page-heading"><div><h2>体质与知识工具</h2><p>下一阶段扩展入口：中医体质辨识和在线模型知识框图。</p></div></div>
+    <div class="tool-grid"><button class="tool-card" id="constitution-tool" type="button"><i data-lucide="clipboard-list"></i><strong>中医体质辨识</strong><span>量表评分 + 在线模型解释</span></button><button class="tool-card" id="graph-tool" type="button"><i data-lucide="network"></i><strong>知识关系框图</strong><span>输入主题生成节点与关系</span></button></div>
+    <div id="tool-panel" class="workspace-surface tool-panel"><div class="empty-state"><i data-lucide="layers-3"></i><h2>选择一个工具开始</h2><p>结果会关联到当前登录用户。</p></div></div>`;
+  document.getElementById("constitution-tool").addEventListener("click", renderConstitution);
+  document.getElementById("graph-tool").addEventListener("click", renderKnowledgeGraph);
+  refreshIcons();
+}
+
+async function renderConstitution() {
+  const panel = document.getElementById("tool-panel");
+  panel.innerHTML = '<div class="tool-loading">正在加载体质量表…</div>';
+  try {
+    const payload = await api("/api/constitution/questions");
+    panel.innerHTML = `
+      <div class="section-title"><div class="title-copy"><span class="section-index">体</span><div><h3>中医体质辨识</h3><p>程序完成量表评分，在线模型负责解释与调护建议。</p></div></div></div>
+      <form id="constitution-form" class="constitution-form">
+        ${(payload.questions || []).map((q) => `<label><span>${escapeHtml(q.text)}</span><select class="select" data-constitution-question="${escapeHtml(q.id)}"><option value="1">几乎没有</option><option value="2">很少</option><option value="3" selected>有时</option><option value="4">经常</option><option value="5">总是</option></select></label>`).join("")}
+        <div class="action-group"><button class="button button-primary" type="submit"><i data-lucide="sparkles"></i>计算并解释</button></div>
+      </form><div id="constitution-result" class="tool-result"></div>`;
+    document.getElementById("constitution-form").addEventListener("submit", handleConstitution);
+    refreshIcons();
+  } catch (error) {
+    panel.innerHTML = `<div class="error-state"><i data-lucide="triangle-alert"></i><h2>量表加载失败</h2><p>${escapeHtml(error.message)}</p></div>`;
+    refreshIcons();
+  }
+}
+
+async function handleConstitution(event) {
+  event.preventDefault();
+  const answers = {};
+  document.querySelectorAll("[data-constitution-question]").forEach((select) => { answers[select.dataset.constitutionQuestion] = Number(select.value); });
+  const resultBox = document.getElementById("constitution-result");
+  resultBox.innerHTML = '<div class="tool-loading">正在计算并请求在线解释…</div>';
+  try {
+    const payload = await api("/api/constitution/analyze", { method: "POST", body: JSON.stringify({ answers }) });
+    const result = payload.result;
+    resultBox.innerHTML = `<div class="tool-result-card"><span class="eyebrow">体质结果</span><h3>${escapeHtml(result.primary)}</h3><p>${escapeHtml(result.explanation.summary || "")}</p><div class="advice-grid">${(result.explanation.advice || []).map((item) => `<div class="advice-item"><p>${escapeHtml(item)}</p></div>`).join("")}</div><div class="warning-item"><i data-lucide="info"></i><span>${escapeHtml((result.explanation.warnings || []).join("、"))}</span></div></div>`;
+    refreshIcons();
+  } catch (error) {
+    resultBox.innerHTML = `<div class="form-error is-visible"><i data-lucide="circle-alert"></i><span>${escapeHtml(error.message)}</span></div>`;
+    refreshIcons();
+  }
+}
+
+function renderKnowledgeGraph() {
+  const panel = document.getElementById("tool-panel");
+  panel.innerHTML = `<form id="graph-form" class="graph-form"><div class="section-title"><div class="title-copy"><span class="section-index">图</span><div><h3>在线知识关系框图</h3><p>输入中医主题、证型或方药关系，由在线模型生成节点和关系。</p></div></div></div><label>图谱标题<input class="input" id="graph-title" value="糖尿病中医知识框图"></label><label>知识描述<textarea class="textarea" id="graph-input" placeholder="例如：气阴两虚证与口干、乏力、益气养阴、生脉散之间的关系"></textarea></label><button class="button button-primary" type="submit"><i data-lucide="network"></i>生成知识框图</button></form><div id="graph-result" class="tool-result"></div>`;
+  document.getElementById("graph-form").addEventListener("submit", handleKnowledgeGraph);
+  refreshIcons();
+}
+
+async function handleKnowledgeGraph(event) {
+  event.preventDefault();
+  const box = document.getElementById("graph-result");
+  box.innerHTML = '<div class="tool-loading">正在请求在线模型生成关系…</div>';
+  try {
+    const payload = await api("/api/knowledge-graph/generate", { method: "POST", body: JSON.stringify({ title: value("graph-title"), input_text: value("graph-input") }) });
+    const graph = payload.graph;
+    box.innerHTML = `<div class="tool-result-card"><h3>${escapeHtml(graph.title || value("graph-title"))}</h3><div class="graph-node-grid">${(graph.nodes || []).map((node) => `<div class="graph-node"><strong>${escapeHtml(node.label)}</strong><span>${escapeHtml(node.category || "知识节点")}</span></div>`).join("")}</div><div class="graph-edge-list">${(graph.edges || []).map((edge) => `<div>${escapeHtml(edge.source)} <strong>→ ${escapeHtml(edge.relation)}</strong> ${escapeHtml(edge.target)}</div>`).join("")}</div></div>`;
+  } catch (error) {
+    box.innerHTML = `<div class="form-error is-visible"><i data-lucide="circle-alert"></i><span>${escapeHtml(error.message)}</span></div>`;
+  }
   refreshIcons();
 }
 
@@ -261,6 +440,8 @@ function renderCollection() {
                   <span>${escapeHtml(item.label)}</span>
                 </label>`).join("")}
             </div>
+            <div class="inquiry-launch"><button id="inquiry-button" class="button button-secondary" type="button"><i data-lucide="message-circle-question"></i>补充智能问诊</button><span>根据当前缺失信息生成补充问题</span></div>
+            <div id="inquiry-panel" class="inquiry-panel" hidden></div>
           </div>
         </div>
       </section>
@@ -319,6 +500,30 @@ function renderCollection() {
   document.getElementById("patient-height").addEventListener("input", updateBmiField);
   document.getElementById("patient-weight").addEventListener("input", updateBmiField);
   document.getElementById("tongue-upload").addEventListener("change", handleImageUpload);
+  document.getElementById("inquiry-button").addEventListener("click", loadInquiry);
+}
+
+async function loadInquiry() {
+  const panel = document.getElementById("inquiry-panel");
+  panel.hidden = false;
+  panel.innerHTML = '<div class="tool-loading">正在生成补充问题…</div>';
+  try {
+    const payload = await api("/api/inquiry", { method: "POST", body: JSON.stringify({ case: collectCaseForm() }) });
+    panel.innerHTML = payload.questions.length ? `<div class="inquiry-title">补充问诊</div>${payload.questions.map((question) => `<label>${escapeHtml(question.text)}<select class="select" data-inquiry-id="${escapeHtml(question.id)}"><option value="">请选择</option>${question.options.map((option) => `<option>${escapeHtml(option)}</option>`).join("")}</select></label>`).join("")}<button id="apply-inquiry" class="button button-secondary" type="button"><i data-lucide="check"></i>应用回答</button>` : '<div class="tool-loading">当前信息已经比较完整，可以直接分析。</div>';
+    document.getElementById("apply-inquiry")?.addEventListener("click", applyInquiry);
+    refreshIcons();
+  } catch (error) {
+    panel.innerHTML = `<div class="form-error is-visible"><i data-lucide="circle-alert"></i><span>${escapeHtml(error.message)}</span></div>`;
+    refreshIcons();
+  }
+}
+
+function applyInquiry() {
+  const answers = [...document.querySelectorAll("[data-inquiry-id]")].filter((select) => select.value).map((select) => `${select.dataset.inquiryId}：${select.value}`);
+  if (!answers.length) return showToast("请至少选择一个回答", true);
+  const field = document.getElementById("present-illness");
+  field.value = `${field.value}${field.value ? "\n" : ""}补充问诊：${answers.join("；")}`;
+  showToast("补充问诊已写入现病史");
 }
 
 function patientStrip(current, image) {
@@ -528,6 +733,7 @@ async function handleAnalyze(event) {
       delay(850),
     ]);
     applyAnalysisPayload(payload);
+    state.analysisSaved = payload.saved || null;
     state.busy = false;
     render();
   } catch (error) {
@@ -728,9 +934,10 @@ function renderReview() {
     </div>
     <form id="review-form">
       <div class="review-layout">
-        <section class="review-panel">
+      <section class="review-panel">
           <header class="review-panel-head"><h3>辨证结论</h3><span class="status-badge">可编辑</span></header>
           <div class="review-panel-body">
+            ${renderSafetyChecks(state.analysis.safety_checks)}
             <div class="form-grid">
               ${inputField("review-syndrome", "最终证型", review.primary_syndrome, "text", "span-6", true)}
               ${inputField("review-principle", "治法", review.treatment_principle, "text", "span-6", true)}
@@ -820,6 +1027,13 @@ function formulaRow(item, index) {
     </tr>`;
 }
 
+function renderSafetyChecks(checks) {
+  if (!checks || !checks.alerts || !checks.alerts.length) {
+    return '<div class="safety-ok"><i data-lucide="shield-check"></i><span>当前预置规则未发现高风险配伍冲突。</span></div>';
+  }
+  return `<div class="safety-alerts">${checks.alerts.map((alert) => `<div class="safety-alert ${alert.level === "danger" ? "is-danger" : ""}"><i data-lucide="${alert.level === "danger" ? "triangle-alert" : "info"}"></i><span><strong>${escapeHtml(alert.name)}</strong>${escapeHtml(alert.message)}</span></div>`).join("")}</div>`;
+}
+
 function saveReviewFromForm(requireConfirmation) {
   const rows = [...document.querySelectorAll("[data-formula-row]")];
   const items = rows.map((row) => ({
@@ -870,7 +1084,7 @@ async function handleGenerateReport(event) {
   try {
     const payload = await api("/api/report", {
       method: "POST",
-      body: JSON.stringify({ case: state.caseData, analysis: state.analysis, review: state.review }),
+      body: JSON.stringify({ case: state.caseData, analysis: state.analysis, review: state.review, analysis_id: state.analysisSaved?.analysis_id }),
     });
     state.report = payload.report;
     state.busy = false;

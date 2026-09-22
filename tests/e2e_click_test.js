@@ -7,7 +7,7 @@ const CHROME_PATH = process.env.CHROME_PATH || "/Applications/Google Chrome.app/
 async function run() {
   const browser = await chromium.launch({ headless: true, executablePath: CHROME_PATH });
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
-  const report = { passed: [], failed: [], consoleErrors: [], expectedConsoleErrors: [], pageErrors: [], badResponses: [], expectedErrorResponses: [] };
+  const report = { passed: [], failed: [], consoleErrors: [], expectedConsoleErrors: [], pageErrors: [], badResponses: [], expectedErrorResponses: [], expectedAuthResponses: [] };
   let expectAnalyzeError = false;
   const pass = (name, detail = "") => report.passed.push({ name, detail });
   const check = (condition, name, detail = "") => {
@@ -17,7 +17,8 @@ async function run() {
 
   page.on("console", (message) => {
     if (message.type() === "error") {
-      if (expectAnalyzeError && message.text().includes("503")) report.expectedConsoleErrors.push(message.text());
+      if (message.text().includes("401") && message.text().includes("UNAUTHORIZED")) report.expectedConsoleErrors.push(message.text());
+      else if (expectAnalyzeError && message.text().includes("503")) report.expectedConsoleErrors.push(message.text());
       else report.consoleErrors.push(message.text());
     }
   });
@@ -25,13 +26,25 @@ async function run() {
   page.on("response", (response) => {
     if (response.status() >= 400) {
       const item = { status: response.status(), url: response.url() };
-      if (expectAnalyzeError && response.url().endsWith("/api/analyze")) report.expectedErrorResponses.push(item);
+      if (response.status() === 401 && response.url().endsWith("/api/auth/me")) report.expectedAuthResponses.push(item);
+      else if (expectAnalyzeError && response.url().endsWith("/api/analyze")) report.expectedErrorResponses.push(item);
       else report.badResponses.push(item);
     }
   });
 
   try {
     await page.goto(APP_URL, { waitUntil: "networkidle" });
+    if (await page.locator("#auth-form").count()) {
+      const username = `e2e_${Date.now()}`;
+      await page.click("#auth-switch");
+      await page.waitForSelector("#auth-confirm-input");
+      await page.fill("#auth-username-input", username);
+      await page.fill("#auth-password-input", "secret123");
+      await page.fill("#auth-confirm-input", "secret123").catch(() => {});
+      await page.click('#auth-form button[type="submit"]');
+      await page.waitForSelector("#intake-form", { timeout: 10000 });
+      pass("注册并登录测试用户");
+    }
     await page.waitForSelector("#intake-form");
     check((await page.locator("[data-case-id]").count()) === 3, "三个病例卡片加载");
     check((await page.locator("#patient-name").inputValue()) === "演示患者 A", "默认载入病例A");

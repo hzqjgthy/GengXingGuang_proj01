@@ -11,6 +11,39 @@ def test_home_and_health_are_available(client):
     assert health.get_json()["status"] == "ok"
 
 
+def test_register_login_and_logout(client):
+    registered = client.post("/api/auth/register", json={"username": "alice", "password": "secret123"})
+    assert registered.status_code == 201
+    assert registered.get_json()["user"]["username"] == "alice"
+
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.get_json()["user"]["username"] == "alice"
+
+    logged_out = client.post("/api/auth/logout")
+    assert logged_out.status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_history_is_saved_for_logged_in_user(client, case_a):
+    client.post("/api/auth/register", json={"username": "history-user", "password": "secret123"})
+    response = client.post("/api/analyze", json={"case": case_a, "mode": "demo"})
+    assert response.status_code == 200
+    saved = response.get_json()["saved"]
+    assert saved["analysis_id"]
+
+    history = client.get("/api/history")
+    assert history.status_code == 200
+    assert history.get_json()["history"][0]["primary_syndrome"] == "气阴两虚证"
+
+
+def test_duplicate_username_is_rejected(client):
+    assert client.post("/api/auth/register", json={"username": "duplicate", "password": "secret123"}).status_code == 201
+    response = client.post("/api/auth/register", json={"username": "duplicate", "password": "secret123"})
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "REGISTER_INVALID"
+
+
 def test_lists_three_demo_cases_without_full_medical_record(client):
     response = client.get("/api/cases")
     payload = response.get_json()
@@ -117,7 +150,9 @@ def test_report_requires_confirmation(client, case_a):
 
 
 def test_report_uses_confirmed_edited_values(client, case_a):
-    analysis = client.post("/api/analyze", json={"case": case_a, "mode": "demo"}).get_json()["analysis"]
+    client.post("/api/auth/register", json={"username": "report-user", "password": "secret123"})
+    analyzed = client.post("/api/analyze", json={"case": case_a, "mode": "demo"}).get_json()
+    analysis = analyzed["analysis"]
     edited_formula = copy.deepcopy(analysis["formula"])
     edited_formula["name"] = "人工确认方（教学示例）"
     review = {
@@ -131,7 +166,7 @@ def test_report_uses_confirmed_edited_values(client, case_a):
 
     response = client.post(
         "/api/report",
-        json={"case": case_a, "analysis": analysis, "review": review},
+        json={"case": case_a, "analysis": analysis, "review": review, "analysis_id": analyzed["saved"]["analysis_id"]},
     )
     report = response.get_json()["report"]
 
@@ -141,6 +176,15 @@ def test_report_uses_confirmed_edited_values(client, case_a):
     assert report["medical_record"]["formula"]["name"] == edited_formula["name"]
     assert report["patient_report"]["explanation"] == review["explanation"]
     assert "教学演示" in report["patient_report"]["disclaimer"]
+
+
+def test_report_does_not_duplicate_saved_analysis(client, case_a):
+    client.post("/api/auth/register", json={"username": "no-duplicate", "password": "secret123"})
+    analyzed = client.post("/api/analyze", json={"case": case_a, "mode": "demo"}).get_json()
+    review = {"confirmed": True, "primary_syndrome": analyzed["analysis"]["primary_syndrome"], "treatment_principle": analyzed["analysis"]["treatment_principle"], "pathogenesis": analyzed["analysis"]["pathogenesis"], "explanation": analyzed["analysis"]["explanation"], "formula": analyzed["analysis"]["formula"]}
+    response = client.post("/api/report", json={"case": case_a, "analysis": analyzed["analysis"], "review": review, "analysis_id": analyzed["saved"]["analysis_id"]})
+    assert response.status_code == 200
+    assert len(client.get("/api/history").get_json()["history"]) == 1
 
 
 def test_public_config_never_contains_api_key(client):

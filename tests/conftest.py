@@ -19,7 +19,10 @@ from app import create_app  # noqa: E402
 
 @pytest.fixture()
 def app():
-    application = create_app({"TESTING": True})
+    test_db = PROJECT_ROOT / "data" / "pytest.db"
+    if test_db.exists():
+        test_db.unlink()
+    application = create_app({"TESTING": True, "DB_ENGINE": "sqlite", "SQLITE_PATH": str(test_db)})
     yield application
 
 
