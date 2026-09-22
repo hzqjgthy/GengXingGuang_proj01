@@ -44,6 +44,19 @@ def test_duplicate_username_is_rejected(client):
     assert response.get_json()["error"]["code"] == "REGISTER_INVALID"
 
 
+def test_inquiry_returns_relevant_missing_questions(client, case_a):
+    response = client.post("/api/inquiry", json={"case": case_a})
+    assert response.status_code == 200
+    questions = response.get_json()["questions"]
+    assert all("id" in item and "options" in item for item in questions)
+    assert len(questions) <= 5
+
+
+def test_constitution_and_knowledge_graph_require_login(client):
+    assert client.post("/api/constitution/analyze", json={"answers": {"q1": 3}}).status_code == 401
+    assert client.post("/api/knowledge-graph/generate", json={"input_text": "气虚质与乏力"}).status_code == 401
+
+
 def test_lists_three_demo_cases_without_full_medical_record(client):
     response = client.get("/api/cases")
     payload = response.get_json()
